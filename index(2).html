@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIM-SANE — Sistema Inteligente de Monitoramento de Resíduos e Drenagem</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#f5f5f5;--white:#ffffff;--dark:#1c1c2e;--darker:#12121f;
+  --purple:#2d2d7a;--cyan:#00c8d7;--cyan2:#00e5f5;
+  --blue-btn:#3a3ad4;--card:#ffffff;--card-border:#e0e0e0;
+  --text:#1a1a2e;--muted:#666;--muted2:#999;
+  --green:#27ae60;--yellow:#f39c12;--red:#e74c3c;--blue:#2e86c1;
+  --section-bg:#f0f0f8;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Open Sans',sans-serif;overflow-x:hidden;font-size:15px}
+*{margin:0;padding:0;box-sizing:border-box}
+nav{background:var(--dark);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,0.3)}
+.nav-left{display:flex;align-items:center;gap:10px}
+.nav-logo-box{background:var(--cyan);border-radius:6px;padding:4px 11px;font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:900;letter-spacing:2px;color:var(--dark)}
+.nav-sitename{font-family:'Montserrat',sans-serif;font-size:1.15rem;font-weight:800;letter-spacing:2px;color:#fff}
+.nav-tabs{display:flex}
+.nav-tab{padding:0 1.3rem;height:62px;display:flex;align-items:center;font-size:0.78rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;border:none;background:transparent;color:rgba(255,255,255,0.55);border-bottom:3px solid transparent;transition:all 0.18s;font-family:'Montserrat',sans-serif}
+.nav-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.nav-tab:hover{color:#fff}
+section{display:none;min-height:calc(100vh - 62px)}
+section.active{display:block}
+.hero{background:var(--dark);padding:4rem 2rem 4.5rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;bottom:0;left:0;right:0;height:60px;background:var(--bg);clip-path:ellipse(60% 100% at 50% 100%)}
+.hero-logo-bg{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:360px;height:360px;opacity:0.04;pointer-events:none}
+.hero-logo-bg svg{width:100%;height:100%}
+.hero-tag{display:inline-block;background:rgba(0,200,215,0.15);border:1px solid var(--cyan);color:var(--cyan);font-size:0.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:0.35rem 1rem;border-radius:20px;margin-bottom:1.8rem}
+.hero-title{font-family:'Montserrat',sans-serif;font-size:clamp(1.8rem,5vw,3.2rem);font-weight:900;line-height:1.15;color:#fff;margin-bottom:0.5rem;position:relative;z-index:2}
+.hero-title .hl{color:var(--cyan)}
+.hero-school{font-size:0.78rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:2.8rem}
+.info-section{background:var(--bg);padding:3.5rem 2rem;max-width:980px;margin:0 auto}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:0.3rem}
+.sec-head h3{font-family:'Montserrat',sans-serif;font-size:1.25rem;font-weight:800;color:var(--dark);white-space:nowrap}
+.sec-head::after{content:'';flex:1;height:2px;background:var(--cyan);border-radius:2px}
+.sec-sub{color:var(--muted2);font-size:0.8rem;margin-bottom:1.6rem}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem;margin-bottom:2rem}
+.icard{background:var(--white);border:1px solid var(--card-border);border-radius:12px;padding:1.4rem 1.5rem;border-top:4px solid var(--cyan);box-shadow:0 2px 8px rgba(0,0,0,0.06);transition:transform 0.2s,box-shadow 0.2s}
+.icard:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,0.1)}
+.icard h4{font-family:'Montserrat',sans-serif;font-size:0.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--purple);font-weight:800;margin-bottom:0.8rem}
+.icard p{color:var(--muted);font-size:0.84rem;line-height:1.85}
+.profile-section{background:var(--dark);padding:3rem 2rem}
+.profile-inner{max-width:640px;margin:0 auto;text-align:center}
+.profile-inner .sec-label{font-size:0.68rem;letter-spacing:2px;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:1rem;font-family:'Montserrat',sans-serif}
+.profile-card{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:1.8rem 2rem;display:flex;align-items:center;gap:1.5rem;text-align:left;border-left:4px solid var(--cyan)}
+.avatar{width:75px;height:75px;border-radius:50%;flex-shrink:0;background:rgba(0,200,215,0.15);border:2.5px solid var(--cyan);display:flex;align-items:center;justify-content:center;font-family:'Montserrat',sans-serif;font-size:1.5rem;font-weight:900;color:var(--cyan)}
+.profile-name{font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:800;color:#fff;margin-bottom:0.35rem}
+.profile-role{font-size:0.78rem;color:rgba(255,255,255,0.5);line-height:1.7}
+.profile-role strong{color:var(--cyan)}
+.dash{padding:1.6rem 1.8rem;max-width:1060px;margin:0 auto}
+.dash-hd{border-bottom:2px solid var(--card-border);padding-bottom:1rem;margin-bottom:1.4rem;display:flex;align-items:flex-end;justify-content:space-between}
+.dash-hd h2{font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:900;color:var(--dark)}
+.dash-hd h2 em{color:var(--purple);font-style:normal}
+.dash-hd p{font-size:0.78rem;color:var(--muted);margin-top:3px}
+.dash-time{font-size:0.7rem;color:var(--muted2);text-align:right}
+.dash-time span{color:var(--purple);font-weight:700;font-size:0.88rem;display:block}
+.srow{display:flex;gap:0.8rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.scard{flex:1;min-width:170px;background:var(--white);border:1px solid var(--card-border);border-radius:10px;padding:0.9rem 1.1rem;display:flex;align-items:center;gap:0.85rem;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.sdot{width:13px;height:13px;border-radius:50%;flex-shrink:0;transition:all 0.4s}
+.slbl{font-size:0.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--muted2);margin-bottom:3px;font-weight:600}
+.sval{font-family:'Montserrat',sans-serif;font-weight:800;font-size:0.9rem;color:var(--dark)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:680px){.dgrid,.info-grid{grid-template-columns:1fr}}
+.dcard{background:var(--white);border:1px solid var(--card-border);border-radius:10px;padding:1.1rem 1.2rem;margin-bottom:1rem;box-shadow:0 1px 4px rgba(0,0,0,0.05)}
+.dcard-t{font-size:0.65rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);font-weight:700;margin-bottom:0.9rem;font-family:'Montserrat',sans-serif}
+.ring-row{display:flex;align-items:center;gap:1.1rem}
+.rw{position:relative;width:88px;height:88px;flex-shrink:0}
+.rw canvas{position:absolute;top:0;left:0}
+.rnum{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Montserrat',sans-serif;font-size:1.1rem;font-weight:900;text-align:center}
+.rmeta h5{font-size:0.67rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);font-weight:800;margin-bottom:0.4rem;font-family:'Montserrat',sans-serif}
+.rmeta p{font-size:0.8rem;color:var(--muted);line-height:1.8}
+.rmeta strong{color:var(--dark);font-weight:700}
+.cwrap{position:relative;width:100%;height:185px}
+.cleg{display:flex;gap:0.9rem;margin-bottom:0.5rem;flex-wrap:wrap}
+.clgi{display:flex;align-items:center;gap:5px;font-size:0.7rem;color:var(--muted)}
+.clgq{width:10px;height:10px;border-radius:2px}
+.gps-inner{display:grid;grid-template-columns:1fr 100px;gap:1rem;align-items:center}
+.gf{margin-bottom:0.65rem}
+.gl{font-size:0.62rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted2);margin-bottom:2px;font-weight:600}
+.gv{font-weight:700;font-size:0.88rem;color:var(--purple)}
+.gblink::after{content:'...';animation:blink 1.3s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.15}}
+.mapbox{width:100px;height:100px;background:var(--section-bg);border:1px solid var(--card-border);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.mgrid{position:absolute;inset:0;background-image:linear-gradient(var(--card-border) 1px,transparent 1px),linear-gradient(90deg,var(--card-border) 1px,transparent 1px);background-size:16px 16px}
+.mpin{position:relative;z-index:2;width:13px;height:13px;background:var(--cyan);border-radius:50%;animation:pingp 2s infinite}
+@keyframes pingp{0%,100%{box-shadow:0 0 0 4px rgba(0,200,215,0.3)}50%{box-shadow:0 0 0 12px rgba(0,200,215,0.07)}}
+.leglist{display:flex;flex-direction:column;gap:0.65rem;margin-top:0.4rem}
+.legrow{display:flex;align-items:center;gap:0.7rem;font-size:0.82rem;color:var(--muted)}
+.legc{width:13px;height:13px;border-radius:50%;flex-shrink:0}
+.sep{border-top:1px solid var(--card-border);margin:0.9rem 0}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-left">
+    <div class="nav-logo-box">SS</div>
+    <div class="nav-sitename">SIM-SANE</div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showSec('home',this)">Início</button>
+    <button class="nav-tab" onclick="showSec('contentor',this)">Contentor</button>
+    <button class="nav-tab" onclick="showSec('drenagem',this)">Drenagem</button>
+  </div>
+</nav>
+
+<section id="home" class="active">
+  <div class="hero">
+    <div class="hero-logo-bg">
+      <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="100" cy="100" r="95" fill="none" stroke="white" stroke-width="7"/>
+        <circle cx="100" cy="100" r="72" fill="none" stroke="white" stroke-width="3"/>
+        <circle cx="100" cy="100" r="50" fill="none" stroke="white" stroke-width="2"/>
+        <text x="100" y="90" text-anchor="middle" fill="white" font-size="20" font-weight="bold" font-family="Arial">IPIZ</text>
+        <text x="100" y="110" text-anchor="middle" fill="white" font-size="12" font-family="Arial">Nº 6081</text>
+        <text x="100" y="133" text-anchor="middle" fill="white" font-size="7.5" font-family="Arial">"17 DE DEZEMBRO"</text>
+      </svg>
+    </div>
+    <div class="hero-tag">IPIZ — Instituto Politécnico Industrial do Zango</div>
+    <h1 class="hero-title">Sistema Inteligente de<br><span class="hl">Monitoramento</span><br>de Resíduos e Drenagem</h1>
+    <p class="hero-school">Electrónica Industrial e Automação &nbsp;·&nbsp; IPIZ Nº 6081</p>
+  </div>
+  <div class="info-section">
+    <div class="sec-head"><h3>Sobre o Projecto</h3></div>
+    <p class="sec-sub">Conhece o sistema, os objectivos e o impacto esperado</p>
+    <div class="info-grid">
+      <div class="icard"><h4>💡 O que é?</h4><p>O SIM-SANE é um sistema embarcado que recolhe dados de sensores instalados em contentores de lixo e pontos de drenagem, transmitindo-os em tempo real via ESP32 para esta dashboard acessível em qualquer parte do mundo.</p></div>
+      <div class="icard"><h4>🎯 Objectivo</h4><p>Optimizar a gestão de resíduos sólidos e drenagem urbana, permitindo às autoridades locais reagir rapidamente a contentores cheios, acumulação de gases nocivos e bloqueios nos sistemas de drenagem.</p></div>
+      <div class="icard"><h4>⚡ Impacto Tecnológico</h4><p>Integração de sensores ultrassónicos, detecção de gases e geolocalização GPS numa única plataforma IoT, demonstrando como a tecnologia pode resolver problemas urbanos reais de forma acessível e eficiente.</p></div>
+      <div class="icard"><h4>🌍 Impacto Social</h4><p>Redução de custos operacionais na recolha de lixo, prevenção de inundações, melhoria da saúde pública pela detecção de gases nocivos e promoção de cidades mais inteligentes e sustentáveis em Angola.</p></div>
+    </div>
+  </div>
+  <div class="profile-section">
+    <div class="profile-inner">
+      <div class="sec-label">Criador do Projecto</div>
+      <div class="profile-card">
+        <div class="avatar">CE</div>
+        <div>
+          <div class="profile-name">Carlos Edmar da Silva Pascoal</div>
+          <div class="profile-role">Estudante &nbsp;·&nbsp; <strong>Electrónica Industrial e Automação</strong><br>Instituto Politécnico Industrial do Zango — IPIZ Nº 6081</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="contentor">
+  <div class="dash">
+    <div class="dash-hd">
+      <div><h2>🗑 <em>Contentor</em></h2><p>Nível de enchimento e qualidade do ar — Sensor HC-SR04 + MQ-135</p></div>
+      <div class="dash-time">Última leitura<span id="cont-time">--:--:--</span></div>
+    </div>
+    <div class="srow">
+      <div class="scard"><div class="sdot" id="c-lixo-dot"></div><div><div class="slbl">Estado do Lixo</div><div class="sval" id="c-lixo-txt">—</div></div></div>
+      <div class="scard"><div class="sdot" id="c-gas-dot"></div><div><div class="slbl">Estado do Gás</div><div class="sval" id="c-gas-txt">—</div></div></div>
+      <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Percentagem Actual</div><div class="sval" id="c-pct-lbl">—</div></div></div>
+    </div>
+    <div class="dgrid">
+      <div>
+        <div class="dcard">
+          <div class="dcard-t">Nível de Enchimento — HC-SR04</div>
+          <div class="ring-row">
+            <div class="rw"><canvas id="ringC" width="88" height="88"></canvas><div class="rnum" id="ring-pct" style="color:var(--green)">0%</div></div>
+            <div class="rmeta"><h5>Percentagem Actual</h5><p>Estado: <strong id="c-estado">—</strong><br>Distância: <strong id="c-dist">—</strong><br>Sensor: HC-SR04</p></div>
+          </div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-t">Histórico do Nível de Enchimento (%)</div>
+          <div class="cleg"><span class="clgi"><span class="clgq" style="background:var(--cyan)"></span>Nível %</span></div>
+          <div class="cwrap"><canvas id="cc1"></canvas></div>
+        </div>
+      </div>
+      <div>
+        <div class="dcard">
+          <div class="dcard-t">Concentração de Gás — MQ-135 (ppm)</div>
+          <div class="cleg"><span class="clgi"><span class="clgq" style="background:var(--yellow)"></span>PPM</span></div>
+          <div class="cwrap"><canvas id="cc2"></canvas></div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-t">Localização GPS — NEO-6M</div>
+          <div class="gps-inner">
+            <div>
+              <div class="gf"><div class="gl">Latitude</div><div class="gv gblink" id="lat-c">Buscando</div></div>
+              <div class="gf"><div class="gl">Longitude</div><div class="gv gblink" id="lng-c">Buscando</div></div>
+              <div class="gf"><div class="gl">Estado GPS</div><div class="gv" id="gps-c-st" style="color:var(--yellow)">A adquirir sinal...</div></div>
+            </div>
+            <div class="mapbox"><div class="mgrid"></div><div class="mpin"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="drenagem">
+  <div class="dash">
+    <div class="dash-hd">
+      <div><h2>🌊 <em>Drenagem</em></h2><p>Nível da água e detecção de resíduos — Sensor HC-SR04T</p></div>
+      <div class="dash-time">Última leitura<span id="dren-time">--:--:--</span></div>
+    </div>
+    <div class="srow">
+      <div class="scard"><div class="sdot" id="d-dot"></div><div><div class="slbl">Estado da Água</div><div class="sval" id="d-txt">—</div></div></div>
+      <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Nível Actual</div><div class="sval" id="d-nivel">— cm</div></div></div>
+      <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Sensor</div><div class="sval">HC-SR04T</div></div></div>
+    </div>
+    <div class="dgrid">
+      <div>
+        <div class="dcard">
+          <div class="dcard-t">Histórico do Nível da Água (cm)</div>
+          <div class="cleg"><span class="clgi"><span class="clgq" style="background:var(--blue)"></span>Nível (cm)</span></div>
+          <div class="cwrap" style="height:220px"><canvas id="dc"></canvas></div>
+        </div>
+      </div>
+      <div>
+        <div class="dcard">
+          <div class="dcard-t">Localização GPS — NEO-6M</div>
+          <div class="gps-inner">
+            <div>
+              <div class="gf"><div class="gl">Latitude</div><div class="gv gblink" id="lat-d">Buscando</div></div>
+              <div class="gf"><div class="gl">Longitude</div><div class="gv gblink" id="lng-d">Buscando</div></div>
+              <div class="gf"><div class="gl">Estado GPS</div><div class="gv" id="gps-d-st" style="color:var(--yellow)">A adquirir sinal...</div></div>
+            </div>
+            <div class="mapbox"><div class="mgrid"></div><div class="mpin"></div></div>
+          </div>
+        </div>
+        <div class="dcard">
+          <div class="dcard-t">Legenda de Estado</div>
+          <div class="leglist">
+            <div class="legrow"><div class="legc" style="background:var(--green)"></div>Verde — Sem resíduos na água</div>
+            <div class="legrow"><div class="legc" style="background:var(--red)"></div>Vermelho — Com resíduos na água</div>
+          </div>
+          <div class="sep"></div>
+          <div class="dcard-t" style="margin-bottom:0.6rem">Legenda — Contentor</div>
+          <div class="leglist">
+            <div class="legrow"><div class="legc" style="background:var(--green)"></div>Verde — Vazio</div>
+            <div class="legrow"><div class="legc" style="background:var(--yellow)"></div>Amarelo — Médio</div>
+            <div class="legrow"><div class="legc" style="background:var(--red)"></div>Vermelho — Cheio</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+function showSec(id,btn){
+  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+const CYAN='#00c8d7',G='#27ae60',Y='#f39c12',R='#e74c3c',B='#2e86c1';
+const grid='#e8e8e8',tick='#999';
+function mkChart(id,color,yMin,yMax){
+  return new Chart(document.getElementById(id),{
+    type:'line',
+    data:{labels:['0','5','10','15','20','25'],datasets:[{data:[0,0,0,0,0,0],borderColor:color,backgroundColor:color+'22',borderWidth:2.5,pointRadius:3,pointBackgroundColor:color,tension:0.4,fill:true,pointBorderColor:'transparent'}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,font:{size:10}},grid:{color:grid},border:{color:grid}},y:{min:yMin,max:yMax,ticks:{color:tick,font:{size:10}},grid:{color:grid},border:{color:grid}}}}
+  });
+}
+const cc1=mkChart('cc1',CYAN,0,150);
+const cc2=mkChart('cc2',Y,0,30);
+const dc=mkChart('dc',B,0,150);
+const ring=new Chart(document.getElementById('ringC').getContext('2d'),{
+  type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[G,'#f0f0f0'],borderWidth:0,borderRadius:3}]},
+  options:{responsive:false,cutout:'76%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
+});
+function updateTime(){const t=new Date().toTimeString().slice(0,8);document.getElementById('cont-time').textContent=t;document.getElementById('dren-time').textContent=t;}
+updateTime();setInterval(updateTime,1000);
+let tick2=0,gpsReady=false;
+function sim(){
+  tick2++;
+  const pct=Math.round(45+38*Math.abs(Math.sin(tick2/9)));
+  const ppm=Math.round(4+14*Math.abs(Math.sin(tick2/6)));
+  const dlv=Math.round(35+45*Math.abs(Math.sin(tick2/8)));
+  const push=(c,v)=>{c.data.datasets[0].data=[...c.data.datasets[0].data.slice(1),v];c.update('none')};
+  push(cc1,pct);push(cc2,ppm);push(dc,dlv);
+  const rC=pct<40?G:pct<75?Y:R;
+  ring.data.datasets[0].data=[pct,100-pct];ring.data.datasets[0].backgroundColor=[rC,'#f0f0f0'];ring.update('none');
+  document.getElementById('ring-pct').textContent=pct+'%';document.getElementById('ring-pct').style.color=rC;
+  document.getElementById('c-pct-lbl').textContent=pct+'%';document.getElementById('c-dist').textContent=Math.round(45*(1-pct/100))+' cm';
+  document.getElementById('c-estado').textContent=pct<40?'Verde — Vazio':pct<75?'Amarelo — Médio':'Vermelho — Cheio';
+  document.getElementById('c-estado').style.color=rC;
+  const ld=document.getElementById('c-lixo-dot'),lt=document.getElementById('c-lixo-txt');
+  if(pct<40){ld.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';lt.textContent='Vazio';}
+  else if(pct<75){ld.style.cssText='background:'+Y+';box-shadow:0 0 7px '+Y+'88';lt.textContent='Médio';}
+  else{ld.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';lt.textContent='Cheio!';}
+  const gd=document.getElementById('c-gas-dot'),gt=document.getElementById('c-gas-txt');
+  if(ppm>15){gd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';gt.textContent='Com Gases!';}
+  else{gd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';gt.textContent='Sem Gases';}
+  const dd=document.getElementById('d-dot'),dt=document.getElementById('d-txt');
+  document.getElementById('d-nivel').textContent=dlv+' cm';
+  if(dlv>70){dd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';dt.textContent='Com Resíduos!';}
+  else{dd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';dt.textContent='Sem Resíduos';}
+  if(tick2===4&&!gpsReady){
+    gpsReady=true;
+    [['lat-c','lat-d'],['lng-c','lng-d']].forEach(([a,b],i)=>{
+      const v=i===0?'-8.9035':'13.2917';
+      [a,b].forEach(id=>{const el=document.getElementById(id);el.textContent=v;el.classList.remove('gblink');el.style.animation='none';});
+    });
+    ['gps-c-st','gps-d-st'].forEach(id=>{const el=document.getElementById(id);el.textContent='Sinal adquirido ✓';el.style.color=G;});
+  }
+}
+setTimeout(sim,800);setInterval(sim,2500);
+</script>
+</body>
+</html>
