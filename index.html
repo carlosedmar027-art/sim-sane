@@ -6,18 +6,183 @@
 <title>SIM-SANE — Sistema Inteligente de Monitoramento de Resíduos e Drenagem</title>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC3bxHAcElg9nYkWcD6XZDxAwovV7LXARs",
+    authDomain: "sim-sane.firebaseapp.com",
+    databaseURL: "https://sim-sane-default-rtdb.firebaseio.com",
+    projectId: "sim-sane",
+    storageBucket: "sim-sane.firebasestorage.app",
+    messagingSenderId: "526669422926",
+    appId: "1:526669422926:web:51af7db65a555864e13e1f"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // ── Cores ──────────────────────────────────────────────
+  const G='#27ae60', Y='#f39c12', R='#e74c3c', CYAN='#00c8d7', B='#2e86c1';
+  const gridC='#e8e8e8', tickC='#999';
+
+  // ── Gráficos ───────────────────────────────────────────
+  function mkChart(id, color, yMin, yMax){
+    return new Chart(document.getElementById(id), {
+      type:'line',
+      data:{
+        labels:['1','2','3','4','5','6','7','8','9','10'],
+        datasets:[{
+          data:[0,0,0,0,0,0,0,0,0,0],
+          borderColor:color, backgroundColor:color+'22',
+          borderWidth:2.5, pointRadius:3, pointBackgroundColor:color,
+          tension:0.4, fill:true, pointBorderColor:'transparent'
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{ticks:{color:tickC,font:{size:10}}, grid:{color:gridC}, border:{color:gridC}},
+          y:{min:yMin, max:yMax, ticks:{color:tickC,font:{size:10}}, grid:{color:gridC}, border:{color:gridC}}
+        }
+      }
+    });
+  }
+
+  const cc1  = mkChart('cc1', CYAN, 0, 100);
+  const cc2  = mkChart('cc2', Y,    0, 100);
+  const dcChart = mkChart('dc', B,  0, 200);
+
+  // ── Anel percentagem ───────────────────────────────────
+  const ring = new Chart(document.getElementById('ringC').getContext('2d'),{
+    type:'doughnut',
+    data:{datasets:[{data:[0,100], backgroundColor:[G,'#f0f0f0'], borderWidth:0, borderRadius:3}]},
+    options:{responsive:false, cutout:'76%', plugins:{legend:{display:false}, tooltip:{enabled:false}}}
+  });
+
+  function pushData(chart, value){
+    const d = chart.data.datasets[0].data;
+    d.push(value); if(d.length > 10) d.shift();
+    chart.update('none');
+  }
+
+  // ── Relógio ────────────────────────────────────────────
+  function updateTime(){
+    const t = new Date().toTimeString().slice(0,8);
+    document.getElementById('cont-time').textContent = t;
+    document.getElementById('dren-time').textContent = t;
+  }
+  updateTime(); setInterval(updateTime, 1000);
+
+  // ── CONTENTOR — ouvir Firebase em tempo real ───────────
+  onValue(ref(db, 'contentor'), snap => {
+    const d = snap.val();
+    if(!d) return;
+
+    const pct  = parseFloat(d.nivel_pct  || 0);
+    const ppm  = parseFloat(d.gas_ppm    || 0);
+    const dist = parseFloat(d.distancia_cm || 0);
+    const lat  = d.latitude  || '—';
+    const lng  = d.longitude || '—';
+
+    // Anel
+    const rC = pct < 40 ? G : pct < 75 ? Y : R;
+    ring.data.datasets[0].data = [pct, 100-pct];
+    ring.data.datasets[0].backgroundColor = [rC, '#f0f0f0'];
+    ring.update('none');
+    document.getElementById('ring-pct').textContent  = pct.toFixed(0)+'%';
+    document.getElementById('ring-pct').style.color  = rC;
+    document.getElementById('c-pct-lbl').textContent = pct.toFixed(0)+'%';
+    document.getElementById('c-dist').textContent    = dist.toFixed(1)+' cm';
+
+    // Estado lixo
+    const ld = document.getElementById('c-lixo-dot');
+    const lt = document.getElementById('c-lixo-txt');
+    const et = document.getElementById('c-estado');
+    if(pct < 40){
+      ld.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';
+      lt.textContent = 'Vazio'; et.textContent = 'Verde — Vazio'; et.style.color = G;
+    } else if(pct < 75){
+      ld.style.cssText='background:'+Y+';box-shadow:0 0 7px '+Y+'88';
+      lt.textContent = 'Médio'; et.textContent = 'Amarelo — Médio'; et.style.color = Y;
+    } else {
+      ld.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';
+      lt.textContent = 'Cheio!'; et.textContent = 'Vermelho — Cheio'; et.style.color = R;
+    }
+
+    // Estado gás
+    const gd = document.getElementById('c-gas-dot');
+    const gt = document.getElementById('c-gas-txt');
+    if(ppm > 400){
+      gd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';
+      gt.textContent = 'Com Gases!';
+    } else {
+      gd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';
+      gt.textContent = 'Sem Gases';
+    }
+
+    // Gráficos
+    pushData(cc1, pct);
+    pushData(cc2, ppm);
+
+    // GPS
+    const lcEl = document.getElementById('lat-c');
+    const lnEl = document.getElementById('lng-c');
+    lcEl.textContent = lat; lcEl.classList.remove('gblink'); lcEl.style.animation='none';
+    lnEl.textContent = lng; lnEl.classList.remove('gblink'); lnEl.style.animation='none';
+    const gst = document.getElementById('gps-c-st');
+    if(lat !== '—'){ gst.textContent='Sinal adquirido ✓'; gst.style.color=G; }
+    else { gst.textContent='A adquirir sinal...'; gst.style.color=Y; }
+  });
+
+  // ── DRENAGEM — ouvir Firebase em tempo real ────────────
+  onValue(ref(db, 'drenagem'), snap => {
+    const d = snap.val();
+    if(!d) return;
+
+    const nivel = parseFloat(d.nivel_cm  || 0);
+    const lat   = d.latitude  || '—';
+    const lng   = d.longitude || '—';
+
+    document.getElementById('d-nivel').textContent = nivel.toFixed(1)+' cm';
+
+    const dd = document.getElementById('d-dot');
+    const dt = document.getElementById('d-txt');
+    if(nivel > 80){
+      dd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';
+      dt.textContent = 'Com Resíduos!';
+    } else {
+      dd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';
+      dt.textContent = 'Sem Resíduos';
+    }
+
+    pushData(dcChart, nivel);
+
+    const ldEl = document.getElementById('lat-d');
+    const lnEl = document.getElementById('lng-d');
+    ldEl.textContent = lat; ldEl.classList.remove('gblink'); ldEl.style.animation='none';
+    lnEl.textContent = lng; lnEl.classList.remove('gblink'); lnEl.style.animation='none';
+    const gst = document.getElementById('gps-d-st');
+    if(lat !== '—'){ gst.textContent='Sinal adquirido ✓'; gst.style.color=G; }
+    else { gst.textContent='A adquirir sinal...'; gst.style.color=Y; }
+  });
+
+</script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#f5f5f5;--white:#ffffff;--dark:#1c1c2e;--darker:#12121f;
-  --purple:#2d2d7a;--cyan:#00c8d7;--cyan2:#00e5f5;
-  --blue-btn:#3a3ad4;--card:#ffffff;--card-border:#e0e0e0;
-  --text:#1a1a2e;--muted:#666;--muted2:#999;
+  --bg:#f5f5f5;--white:#ffffff;--dark:#1c1c2e;
+  --purple:#2d2d7a;--cyan:#00c8d7;
+  --card-border:#e0e0e0;--text:#1a1a2e;--muted:#666;--muted2:#999;
   --green:#27ae60;--yellow:#f39c12;--red:#e74c3c;--blue:#2e86c1;
   --section-bg:#f0f0f8;
 }
 html,body{background:var(--bg);color:var(--text);font-family:'Open Sans',sans-serif;overflow-x:hidden;font-size:15px}
-*{margin:0;padding:0;box-sizing:border-box}
 nav{background:var(--dark);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:62px;position:sticky;top:0;z-index:200;box-shadow:0 2px 12px rgba(0,0,0,0.3)}
 .nav-left{display:flex;align-items:center;gap:10px}
 .nav-logo-box{background:var(--cyan);border-radius:6px;padding:4px 11px;font-family:'Montserrat',sans-serif;font-size:1rem;font-weight:900;letter-spacing:2px;color:var(--dark)}
@@ -95,9 +260,13 @@ section.active{display:block}
 .legrow{display:flex;align-items:center;gap:0.7rem;font-size:0.82rem;color:var(--muted)}
 .legc{width:13px;height:13px;border-radius:50%;flex-shrink:0}
 .sep{border-top:1px solid var(--card-border);margin:0.9rem 0}
+/* Badge ligação Firebase */
+.fb-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(0,200,215,0.1);border:1px solid var(--cyan);color:var(--cyan);font-size:0.65rem;font-weight:700;letter-spacing:1px;padding:0.25rem 0.7rem;border-radius:20px;margin-left:0.8rem;vertical-align:middle}
+.fb-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan);animation:blink 1.5s infinite}
 </style>
 </head>
 <body>
+
 <nav>
   <div class="nav-left">
     <div class="nav-logo-box">SS</div>
@@ -110,6 +279,7 @@ section.active{display:block}
   </div>
 </nav>
 
+<!-- HOME -->
 <section id="home" class="active">
   <div class="hero">
     <div class="hero-logo-bg">
@@ -150,15 +320,19 @@ section.active{display:block}
   </div>
 </section>
 
+<!-- CONTENTOR -->
 <section id="contentor">
   <div class="dash">
     <div class="dash-hd">
-      <div><h2>🗑 <em>Contentor</em></h2><p>Nível de enchimento e qualidade do ar — Sensor HC-SR04 + MQ-135</p></div>
+      <div>
+        <h2>🗑 <em>Contentor</em> <span class="fb-badge"><span class="fb-dot"></span>Firebase</span></h2>
+        <p>Nível de enchimento e qualidade do ar — Sensor HC-SR04 + MQ-135</p>
+      </div>
       <div class="dash-time">Última leitura<span id="cont-time">--:--:--</span></div>
     </div>
     <div class="srow">
-      <div class="scard"><div class="sdot" id="c-lixo-dot"></div><div><div class="slbl">Estado do Lixo</div><div class="sval" id="c-lixo-txt">—</div></div></div>
-      <div class="scard"><div class="sdot" id="c-gas-dot"></div><div><div class="slbl">Estado do Gás</div><div class="sval" id="c-gas-txt">—</div></div></div>
+      <div class="scard"><div class="sdot" id="c-lixo-dot" style="background:#ccc"></div><div><div class="slbl">Estado do Lixo</div><div class="sval" id="c-lixo-txt">A aguardar dados...</div></div></div>
+      <div class="scard"><div class="sdot" id="c-gas-dot" style="background:#ccc"></div><div><div class="slbl">Estado do Gás</div><div class="sval" id="c-gas-txt">A aguardar dados...</div></div></div>
       <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Percentagem Actual</div><div class="sval" id="c-pct-lbl">—</div></div></div>
     </div>
     <div class="dgrid">
@@ -167,7 +341,7 @@ section.active{display:block}
           <div class="dcard-t">Nível de Enchimento — HC-SR04</div>
           <div class="ring-row">
             <div class="rw"><canvas id="ringC" width="88" height="88"></canvas><div class="rnum" id="ring-pct" style="color:var(--green)">0%</div></div>
-            <div class="rmeta"><h5>Percentagem Actual</h5><p>Estado: <strong id="c-estado">—</strong><br>Distância: <strong id="c-dist">—</strong><br>Sensor: HC-SR04</p></div>
+            <div class="rmeta"><h5>Percentagem Actual</h5><p>Estado: <strong id="c-estado">A aguardar...</strong><br>Distância: <strong id="c-dist">—</strong><br>Sensor: HC-SR04</p></div>
           </div>
         </div>
         <div class="dcard">
@@ -198,14 +372,18 @@ section.active{display:block}
   </div>
 </section>
 
+<!-- DRENAGEM -->
 <section id="drenagem">
   <div class="dash">
     <div class="dash-hd">
-      <div><h2>🌊 <em>Drenagem</em></h2><p>Nível da água e detecção de resíduos — Sensor HC-SR04T</p></div>
+      <div>
+        <h2>🌊 <em>Drenagem</em> <span class="fb-badge"><span class="fb-dot"></span>Firebase</span></h2>
+        <p>Nível da água e detecção de resíduos — Sensor HC-SR04T</p>
+      </div>
       <div class="dash-time">Última leitura<span id="dren-time">--:--:--</span></div>
     </div>
     <div class="srow">
-      <div class="scard"><div class="sdot" id="d-dot"></div><div><div class="slbl">Estado da Água</div><div class="sval" id="d-txt">—</div></div></div>
+      <div class="scard"><div class="sdot" id="d-dot" style="background:#ccc"></div><div><div class="slbl">Estado da Água</div><div class="sval" id="d-txt">A aguardar dados...</div></div></div>
       <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Nível Actual</div><div class="sval" id="d-nivel">— cm</div></div></div>
       <div class="scard"><div class="sdot" style="background:var(--cyan)"></div><div><div class="slbl">Sensor</div><div class="sval">HC-SR04T</div></div></div>
     </div>
@@ -255,59 +433,6 @@ function showSec(id,btn){
   document.getElementById(id).classList.add('active');
   btn.classList.add('active');
 }
-const CYAN='#00c8d7',G='#27ae60',Y='#f39c12',R='#e74c3c',B='#2e86c1';
-const grid='#e8e8e8',tick='#999';
-function mkChart(id,color,yMin,yMax){
-  return new Chart(document.getElementById(id),{
-    type:'line',
-    data:{labels:['0','5','10','15','20','25'],datasets:[{data:[0,0,0,0,0,0],borderColor:color,backgroundColor:color+'22',borderWidth:2.5,pointRadius:3,pointBackgroundColor:color,tension:0.4,fill:true,pointBorderColor:'transparent'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tick,font:{size:10}},grid:{color:grid},border:{color:grid}},y:{min:yMin,max:yMax,ticks:{color:tick,font:{size:10}},grid:{color:grid},border:{color:grid}}}}
-  });
-}
-const cc1=mkChart('cc1',CYAN,0,150);
-const cc2=mkChart('cc2',Y,0,30);
-const dc=mkChart('dc',B,0,150);
-const ring=new Chart(document.getElementById('ringC').getContext('2d'),{
-  type:'doughnut',data:{datasets:[{data:[0,100],backgroundColor:[G,'#f0f0f0'],borderWidth:0,borderRadius:3}]},
-  options:{responsive:false,cutout:'76%',plugins:{legend:{display:false},tooltip:{enabled:false}}}
-});
-function updateTime(){const t=new Date().toTimeString().slice(0,8);document.getElementById('cont-time').textContent=t;document.getElementById('dren-time').textContent=t;}
-updateTime();setInterval(updateTime,1000);
-let tick2=0,gpsReady=false;
-function sim(){
-  tick2++;
-  const pct=Math.round(45+38*Math.abs(Math.sin(tick2/9)));
-  const ppm=Math.round(4+14*Math.abs(Math.sin(tick2/6)));
-  const dlv=Math.round(35+45*Math.abs(Math.sin(tick2/8)));
-  const push=(c,v)=>{c.data.datasets[0].data=[...c.data.datasets[0].data.slice(1),v];c.update('none')};
-  push(cc1,pct);push(cc2,ppm);push(dc,dlv);
-  const rC=pct<40?G:pct<75?Y:R;
-  ring.data.datasets[0].data=[pct,100-pct];ring.data.datasets[0].backgroundColor=[rC,'#f0f0f0'];ring.update('none');
-  document.getElementById('ring-pct').textContent=pct+'%';document.getElementById('ring-pct').style.color=rC;
-  document.getElementById('c-pct-lbl').textContent=pct+'%';document.getElementById('c-dist').textContent=Math.round(45*(1-pct/100))+' cm';
-  document.getElementById('c-estado').textContent=pct<40?'Verde — Vazio':pct<75?'Amarelo — Médio':'Vermelho — Cheio';
-  document.getElementById('c-estado').style.color=rC;
-  const ld=document.getElementById('c-lixo-dot'),lt=document.getElementById('c-lixo-txt');
-  if(pct<40){ld.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';lt.textContent='Vazio';}
-  else if(pct<75){ld.style.cssText='background:'+Y+';box-shadow:0 0 7px '+Y+'88';lt.textContent='Médio';}
-  else{ld.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';lt.textContent='Cheio!';}
-  const gd=document.getElementById('c-gas-dot'),gt=document.getElementById('c-gas-txt');
-  if(ppm>15){gd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';gt.textContent='Com Gases!';}
-  else{gd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';gt.textContent='Sem Gases';}
-  const dd=document.getElementById('d-dot'),dt=document.getElementById('d-txt');
-  document.getElementById('d-nivel').textContent=dlv+' cm';
-  if(dlv>70){dd.style.cssText='background:'+R+';box-shadow:0 0 7px '+R+'88';dt.textContent='Com Resíduos!';}
-  else{dd.style.cssText='background:'+G+';box-shadow:0 0 7px '+G+'88';dt.textContent='Sem Resíduos';}
-  if(tick2===4&&!gpsReady){
-    gpsReady=true;
-    [['lat-c','lat-d'],['lng-c','lng-d']].forEach(([a,b],i)=>{
-      const v=i===0?'-8.9035':'13.2917';
-      [a,b].forEach(id=>{const el=document.getElementById(id);el.textContent=v;el.classList.remove('gblink');el.style.animation='none';});
-    });
-    ['gps-c-st','gps-d-st'].forEach(id=>{const el=document.getElementById(id);el.textContent='Sinal adquirido ✓';el.style.color=G;});
-  }
-}
-setTimeout(sim,800);setInterval(sim,2500);
 </script>
 </body>
 </html>
